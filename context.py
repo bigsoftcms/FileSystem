@@ -9,34 +9,56 @@ from sys import argv, exit
 from time import time
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn, fuse_get_context
-import plyvel
-db = plyvel.DB('/home/ehtasham/operating_systems/Assignment2/db', create_if_missing=True)
-files=[]
-file_content=[]
-for key,value in db:
-  files.append(key)
-  file_content.append(db.get(key))
 
 
 class Context(LoggingMixIn, Operations):
     'Example filesystem to demonstrate fuse_get_context()'
 
     def getattr(self, path, fh=None):
-        for f in files:
-            if path == '/':
-                st = dict(st_mode=(S_IFDIR | 0o755), st_nlink=2)
-            else:#if path == f:
-                size = len(f)
-                st = dict(st_mode=(S_IFREG | 0o444),st_size=size)
-            # else:
-            #     raise FuseOSError(ENOENT)
+        uid, gid, pid = fuse_get_context()
+        if path == '/':
+            st = dict(st_mode=(S_IFDIR | 0o755), st_nlink=2)
+        elif path == '/uid':
+            size = len('%s\n' % uid)
+            st = dict(st_mode=(S_IFREG | 0o444), st_size=size)
+        elif path == '/gid':
+            size = len('%s\n' % gid)
+            st = dict(st_mode=(S_IFREG | 0o444), st_size=size)
+        elif path == '/pid':
+            size = len('%s\n' % pid)
+            st = dict(st_mode=(S_IFREG | 0o444), st_size=size)
+        else:
+            raise FuseOSError(ENOENT)
+        st['st_ctime'] = st['st_mtime'] = st['st_atime'] = time()
         return st
 
+    def read(self, path, size, offset, fh):
+        uid, gid, pid = fuse_get_context()
+        encoded = lambda x: ('%s\n' % x).encode('utf-8')
+
+        if path == '/uid':
+            return encoded(uid)
+        elif path == '/gid':
+            return encoded(gid)
+        elif path == '/pid':
+            return encoded(pid)
+
+        raise RuntimeError('unexpected path: %r' % path)
+
     def readdir(self, path, fh):
-        dirents=['.', '..']
-        dirents.extend(files)
-        for r in  dirents:
-            yield r
+        return ['.', '..', 'uid', 'gid', 'pid']
+
+    # Disable unused operations:
+    access = None
+    flush = None
+    getxattr = None
+    listxattr = None
+    open = None
+    opendir = None
+    release = None
+    releasedir = None
+    statfs = None
+
 
 if __name__ == '__main__':
     if len(argv) != 2:
