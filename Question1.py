@@ -8,6 +8,7 @@ from collections import defaultdict
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn, fuse_get_context
 from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
+
 import plyvel
 levledb_path='/home/ehtasham/operating_systems/Assignment2/db'
 db = plyvel.DB(levledb_path, create_if_missing=True)
@@ -41,13 +42,8 @@ class Question1(LoggingMixIn, Operations):
 
     def create(self, path, mode):
         files.append = dict(st_mode=(S_IFDIR | mode), st_nlink=2,
-                                st_size=0, st_ctime=time(), st_mtime=time(),
-                                st_atime=time())
+                                st_size=0)
         return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
-
-    # def open(self, path, flags):
-    #     accmode = os.O_RDONLY | os.O_WRONLY | os.O_RDWR
-
 
 if __name__ == '__main__':
     if len(argv) != 2:
